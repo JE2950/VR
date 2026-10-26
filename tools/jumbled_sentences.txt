@@ -1,0 +1,41 @@
+# correct sentence | extra word (not needed)
+the rocket flew into space | fish
+the cat sat on the mat | sky
+we went to the park after school | elbow
+the astronaut floated in the spaceship | carrot
+my dog likes to chase balls | window
+the children played in the garden | teapot
+she ate an apple for lunch | wheel
+the moon shines at night | pencil
+the robot cleaned the kitchen floor | cloud
+we brushed our teeth before bed | cloud
+the bird built a nest in the tree | coin
+the farmer milked the cows | rocket
+the captain steered the ship home | butter
+the pupils read their books quietly | ladder
+the sun rises in the east | elbow
+he kicked the ball into the goal | thunder
+the baby slept in her cot | engine
+the crew landed on a new planet | sock
+my mum baked a chocolate cake | storm
+the alien waved at the children | sneeze
+we saw a shooting star last night | fork
+the dog barked at the postman | jelly
+the teacher wrote on the board | penguin
+the train arrived at the station | jelly
+the pilot checked the fuel tank | pudding
+the boys played football in the rain | honey
+the lion slept in the shade | bicycle
+the scientist looked through the microscope | custard
+the girl painted a picture of a horse | engine
+the robot carried the heavy boxes | lemon
+the sailors rowed towards the island | pillow
+the comet raced across the dark sky | sandwich
+grandpa told us a funny story | planet
+the rabbit hopped across the field | pencil
+we packed our bags for the holiday | thunder
+the engineer repaired the broken radio | daisy
+the frog jumped into the pond | sneeze
+the clock struck twelve at midnight | carrot
+the owl hunted mice at night | piano
+the space station orbits the earth | spoon

@@ -1,0 +1,61 @@
+# sentence with the target word in [brackets]
+We put the milk in the [fridge].
+The astronaut wore a space [helmet].
+The [rocket] blasted off into space.
+She brushed her [teeth] before bed.
+The [planet] Mars looks red.
+The baby was fast [asleep].
+He wrote his name with a [pencil].
+The [kitten] chased a ball of wool.
+We need [oxygen] to breathe.
+The [captain] gave the orders.
+A [spider] has eight legs.
+The [garden] was full of flowers.
+The sun is a [star].
+They sailed across the [ocean].
+The [robot] beeped twice.
+Dad cut the bread with a [knife].
+The [castle] had tall towers.
+I drank a glass of [water].
+The cows were in the [field].
+We wear [gloves] when it is cold.
+The [moon] was full last night.
+The [teacher] marked our books.
+Grandma sat in her favourite [chair].
+The [lion] is called the king of the jungle.
+We bought apples at the [market].
+The [engine] made a loud noise.
+I sleep in a [bed].
+The [comet] had a bright tail.
+The [doctor] listened to my chest.
+The football hit the [window].
+Bees make [honey].
+The [river] flowed into the sea.
+We went to the [library] to borrow books.
+The [orange] was very juicy.
+The bird sat in its [nest].
+The [station] orbits the Earth.
+He opened the [door] slowly.
+My sister plays the [piano].
+The aliens landed in a flying [saucer].
+We read a [story] at bedtime.
+Put the letter in an [envelope].
+The [winter] was long and cold.
+The pilot flew the [plane].
+The farmer fed the [horse].
+The [crew] floated inside the ship.
+A [camel] can live in the desert.
+We use a [telescope] to look at stars.
+The [silver] spoon was shiny.
+I cut the paper with [scissors].
+Fish swim in the [sea].
+The [parrot] could talk.
+We saw lions at the [zoo].
+The clown wore a red [nose].
+She tied her [laces].
+The [monkey] swung from tree to tree.
+Our [school] has a big hall.
+The [sailor] climbed the mast.
+The [guitar] has six strings.
+The light came from a [lamp].
+The [desert] was hot and dry.
