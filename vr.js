@@ -1024,18 +1024,25 @@ const GROUPS = [
     ['homo', 'Homonyms', '(band, hoop) (call, phone) → RING', 'The answer has two meanings. Find a word that fits the first pair, then check it also fits the second pair.'],
     ['odd2', 'Odd ones out', 'apple, pear, plum, sock, coat', 'Find the three words that belong together and say what links them. The two left over are the answer.'],
     ['analogy', 'Spot the connection', 'dog is to puppy as cat is to ?', 'Make a sentence that links the first pair (“A puppy is a young dog”). Use the same sentence for the second pair.'],
+    ['define', 'Definitions', 'what does CORDIAL mean here?', 'Read the whole sentence. Decide what kind of word fits (a describing word, a thing, an action), then test each choice in its place.'],
+    ['choose', 'Choose the word', 'Used items are ____ than new items.', 'Read the sentence with each choice in the gap. Check it makes sense and fits the grammar (one or many, describing or doing).'],
   ] },
   { id: 'find', name: 'Finding words', topics: [
     ['hidden', 'Hidden words', 'bat[s and] → SAND', 'Look at the end of each word joined to the start of the next. Cover the spaces with your finger and read the letters across them.'],
     ['jumbled', 'Jumbled words', 'the sun is a TSAR → STAR', 'Use the sentence to guess what the word should be, then check every letter is used once.'],
     ['jumsent', 'Jumbled sentences', 'cat the mat sat sky on the', 'Build the sentence from the words. The word that has no place in it is the answer.'],
+    ['anagram', 'Anagrams', 'HISF · lives in water → FISH', 'Use the clue to guess the word, then check it uses every letter once.'],
+    ['complete', 'Complete the sentence', 'The colour of the rose is _INK.', 'Read the sentence to work out what the word means, then find the letters that spell it.'],
+    ['stolen', 'Stolen words', 'COCO + ? · grows on a palm tree', 'Use the clue to work out the full word, then see which letters are missing from the capitals.'],
   ] },
   { id: 'build', name: 'Building words', topics: [
     ['joining', 'Joining words', '(car, sun) (pet, ten) → CARPET', 'Join each word in the first group to each word in the second group. Say each one aloud. Only one makes a real word.'],
     ['morph', 'Morphing words', 'CAMP → ? → LAMP… one letter at a time', 'Compare the first and last words letter by letter. Change one of the different letters and see if it makes a word.'],
     ['transfer', 'Transferring letters', 'HUNT SIP → HUT SNIP (N)', 'Take out one letter at a time from the first word. If what is left is a word, try putting that letter into the second word.'],
     ['missing3', 'Missing three letters', 'CH _ _ _ R → AIR', 'Try each three-letter word in the gap and read the whole word aloud.'],
-    ['letterpair', 'Missing letter', 'for ( ? ) ap · doub ( ? ) heme → T', 'Try a letter in the first pair. If it makes two words, check it works for the second pair too.'],
+    ['letterpair', 'Find the link', 'for ( ? ) ap · doub ( ? ) heme → T', 'Try a letter in the first pair. If it makes two words, check it works for the second pair too.'],
+    ['rearrange', 'Word rules', 'heat → hear · beat → bear · neat → ?', 'Compare each pair letter by letter to find what changes. Make the same change to the last word.'],
+    ['rearrlet', 'Rearrange letters', '( PURE PUSH SHOE ) ( SNOW ? APES )', 'Find which letters of the outer words make the middle word in the first group. Take the same letters from the second group.'],
   ] },
   { id: 'codes', name: 'Codes and sequences', topics: [
     ['alpha', 'Alphabet positions', '3 places after K', 'Write the alphabet with numbers underneath (A = 1 … Z = 26). Count on or back using the numbers.'],
@@ -1044,6 +1051,7 @@ const GROUPS = [
     ['numseq', 'Number sequences', '3, 7, 11, 15, ?', 'Write the difference between each pair of numbers. If the differences do not stay the same, look at how they change.'],
     ['wordcode', 'Letter codes', 'CAT = DBU, so DOG = ?', 'Match each letter to its code letter and count the jump. Check the same rule works for every letter.'],
     ['numcode', 'Number codes', 'STOP = 1234, so POTS = ?', 'Match the letters to the numbers in the same places. Look for words that start or end with the same letter.'],
+    ['symbol', 'Symbol codes', 'SEED = ^!!#', 'Write each letter above its symbol. Repeated symbols show repeated letters.'],
   ] },
   { id: 'logic', name: 'Logic', topics: [
     ['statement', 'Statement logic', 'which statement must be true?', 'Put the people in order on a line. Check each statement against your line.'],
@@ -1051,12 +1059,44 @@ const GROUPS = [
     ['letnum', 'Letters for numbers', 'A = 2, B = 5 … A × B = ?', 'Swap each letter for its number, work out the answer, then find the letter with that value.'],
     ['related', 'Related numbers', '(4 [10] 6) (7 [12] 5) (8 [?] 3)', 'Test the first group with +, −, × and ÷. Check your rule on the second group before using it.'],
     ['sums', 'Complete the sum', '12 + 8 = 30 − ?', 'Work out the side with no gap first. Then find the number that makes the other side equal.'],
+    ['ordering', 'Ordering words', 'Bed, Lamp, Shelf, Desk: which is first?', 'Decide what the order is (size, time, age, the alphabet), then place each one in turn.'],
+    ['numlogic', 'Number logic', 'half of 20 · 7 less than 19', 'Turn the words into a sum: half means divide by 2, less than means take away.'],
+    ['subst', 'Substitutions', 'football = 20, basketball = 11', 'Replace each picture or word with its number, then work out the sum.'],
   ] },
 ];
 const TOPICS = {};
 GROUPS.forEach(g => g.topics.forEach(([id, name, eg, how]) => TOPICS[id] = { id, group: g.id, groupName: g.name, name, eg, how }));
 const ALL_TOPICS = Object.keys(TOPICS);
 function chosenTopics() { const t = (SAVE.topics || ALL_TOPICS).filter(x => TOPICS[x]); return t.length ? t : ALL_TOPICS; }
+
+/* hand-entered questions from atom.js */
+const ATOMBY = {};
+(typeof ATOM !== 'undefined' ? ATOM : []).forEach((it, i) => { it.id = i; (ATOMBY[it.t] = ATOMBY[it.t] || []).push(it); });
+const STRIP_TOPICS = ['alpha', 'letseq', 'letanalogy', 'wordcode'];
+function fromAtom(t) {
+  const list = ATOMBY[t]; if (!list) return null;
+  const it = byLevel(list, x => 'atom' + x.id);
+  let q;
+  if (it.g) {
+    const G = it.g.map(g => shuffle(g));
+    q = { kind: 'pair', groups: G, answer: [G[0].indexOf(it.a[0]), G[1].indexOf(it.a[1])] };
+  } else if (Array.isArray(it.a)) {
+    const o = shuffle(it.o);
+    q = { kind: 'two', options: o, answer: it.a.map(w => o.indexOf(w)).sort((x, y) => x - y) };
+  } else {
+    const o = /order|sentence/.test(it.p) && t === 'jumsent' ? it.o.slice() : shuffle(it.o);
+    q = { kind: 'mc', options: o, answer: o.indexOf(it.a) };
+  }
+  return Object.assign(q, { fixed: true, key: 'atom:' + it.id, explain: it.e,
+    prompt: it.p + (it.s ? box(it.s) : '') + (STRIP_TOPICS.includes(t) ? strip() : '') });
+}
+/* a topic with both kinds: about a third of its questions come from the hand-entered bank,
+   but only when the bank has questions at this age */
+function useAtom(t) {
+  if (!ATOMBY[t]) return false;
+  if (!MAKE[t]) return true;
+  return ATOMBY[t].some(x => x.lv <= age()) && Math.random() < 0.3;
+}
 
 /* topics you get wrong come back more often; the last two topics are avoided */
 let recentTopics = [];
@@ -1069,7 +1109,7 @@ function makeQuestion(only) {
     let r = Math.random() * ws.reduce((a, b) => a + b, 0), t = pool[pool.length - 1];
     for (let i = 0; i < pool.length; i++) { r -= ws[i]; if (r <= 0) { t = pool[i]; break; } }
     let q = null;
-    try { q = MAKE[t](); } catch (e) { console.error(t, e); }
+    try { q = useAtom(t) ? fromAtom(t) : MAKE[t](); } catch (e) { console.error(t, e); }
     if (q) {
       recentTopics.push(t); if (recentTopics.length > Math.min(2, list.length - 1)) recentTopics.shift();
       q.topic = t; q.label = TOPICS[t].name; q.how = TOPICS[t].how;

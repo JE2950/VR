@@ -3,8 +3,8 @@ const fs = require('fs'), vm = require('vm'), path = require('path');
 const root = path.join(__dirname, '..');
 const ctx = { localStorage: { getItem: () => null, setItem: () => {} }, console, Math, JSON, Set, Map, Number, String, Array, Object };
 vm.createContext(ctx);
-vm.runInContext(fs.readFileSync(path.join(root, 'bank.js'), 'utf8') + '\n' + fs.readFileSync(path.join(root, 'vr.js'), 'utf8') +
-  '\nthis.MAKE=MAKE;this.SAVE=SAVE;this.TOPICS=TOPICS;this.makeQuestion=makeQuestion;this.nOpts=nOpts;this.answerText=answerText;', ctx);
+vm.runInContext(fs.readFileSync(path.join(root, 'bank.js'), 'utf8') + '\n' + fs.readFileSync(path.join(root, 'atom.js'), 'utf8') + '\n' + fs.readFileSync(path.join(root, 'vr.js'), 'utf8') +
+  '\nthis.MAKE=MAKE;this.SAVE=SAVE;this.TOPICS=TOPICS;this.makeQuestion=makeQuestion;this.nOpts=nOpts;this.answerText=answerText;this.ATOM=ATOM;this.fromAtom=fromAtom;', ctx);
 const N = +process.argv[2] || 400, show = process.argv[3];
 let bad = 0;
 const strip = h => h.replace(/<span class="vr-abc">.*?<\/span><\/span>|<span class="vr-abc">[\s\S]*$/g, '').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"');
@@ -20,7 +20,7 @@ for (const age of [4, 5, 6]) {
       if (/undefined|NaN|null|\[object/.test(txt)) err('bad text');
       if (q.kind === 'mc') {
         const n = q.options.length;
-        if (!(t === 'deduce' ? n >= 3 : n === ctx.nOpts())) err('option count ' + n);
+        if (!(q.fixed ? n >= 4 : t === 'deduce' ? n >= 3 : n === ctx.nOpts())) err('option count ' + n);
         if (new Set(q.options).size !== n) err('dupe options');
         if (!(q.answer >= 0 && q.answer < n)) err('answer index');
         if (q.options.some(o => o === '' || o == null || /NaN|undefined/.test(o))) err('empty option');
