@@ -58,6 +58,22 @@ function fval(t, f) {
   return t[f];
 }
 const tkey = t => FEATS.map(f => fval(t, f)).join('|');
+/* broader features a pupil could notice, beyond the eight drawn ones */
+const SIDES = { circle: 0, half: 1, square: 4, diamond: 4, triangle: 3, pentagon: 5, hexagon: 6, star: 10, cross: 12, arrow: 7, flag: 5 };
+const DERIVED = {
+  curved: t => t.shape === 'circle' || t.shape === 'half',
+  shaded: t => t.fill !== 'white',
+  darkfill: t => t.fill === 'black',
+  patterned: t => t.fill === 'stripes' || t.fill === 'dots',
+  hasMark: t => t.mark !== 'none',
+  hasLines: t => t.lines > 0,
+  sides: t => SIDES[t.shape],
+  oddCount: t => t.count % 2,
+  diagLines: t => t.lines >= 3,
+};
+const DEP = { curved: ['shape'], shaded: ['fill'], darkfill: ['fill'], patterned: ['fill'], hasMark: ['mark'], hasLines: ['lines'], sides: ['shape'], oddCount: ['count'], diagLines: ['lines'] };
+const dval = (t, f) => DERIVED[f] ? String(DERIVED[f](t)) : fval(t, f);
+const ALLF = FEATS.concat(Object.keys(DERIVED));
 const clone = t => Object.assign({}, t);
 function baseTile(o) { return Object.assign({ shape: 'circle', fill: 'white', size: 3, count: 1, rot: 0, mark: 'none', mpos: 0, lines: 0 }, o || {}); }
 const fillsFor = () => age() === 4 ? ['white', 'black', 'grey', 'stripes'] : FILLS;
@@ -83,7 +99,8 @@ const LAYOUT = {
   1: [[50, 50]], 2: [[31, 50], [69, 50]], 3: [[50, 32], [31, 67], [69, 67]],
   4: [[35, 35], [65, 35], [35, 65], [65, 65]], 5: [[33, 33], [67, 33], [50, 50], [33, 67], [67, 67]],
 };
-const BASE_R = { 1: 27, 2: 16, 3: 14, 4: 12.5, 5: 10.5 };
+// sized so that no shape touches its neighbour at any angle (checked for every shape at every 45° turn)
+const BASE_R = { 1: 27, 2: 14, 3: 13, 4: 11, 5: 8.5 };
 const MARKPOS = [[11, 11], [89, 11], [89, 89], [11, 89]];
 const LINES = [[[2, 50], [98, 50]], [[50, 2], [50, 98]], [[4, 4], [96, 96]], [[96, 4], [4, 96]]];
 let svgN = 0;
@@ -125,7 +142,7 @@ function randTile(o) {
 }
 /* the value of one feature for several tiles: does exactly one stand out? returns that index, or -1 */
 function oddSplit(tiles, f) {
-  const vs = tiles.map(t => fval(t, f)), c = {};
+  const vs = tiles.map(t => dval(t, f)), c = {};
   vs.forEach(v => c[v] = (c[v] || 0) + 1);
   const keys = Object.keys(c);
   if (keys.length !== 2) return -1;
@@ -133,7 +150,7 @@ function oddSplit(tiles, f) {
   if (lone === undefined || many === undefined) return -1;
   return vs.findIndex(v => String(v) === lone);
 }
-const constant = (tiles, f) => new Set(tiles.map(t => fval(t, f))).size === 1;
+const constant = (tiles, f) => new Set(tiles.map(t => dval(t, f))).size === 1;
 const optsHTML = (o, px) => o.map(t => typeof t === 'string' ? t : tileSVG(t, px));
 const row = (items, cls) => `<div class="nvr-row ${cls || ''}">${items.join('')}</div>`;
 const cell = (html, cap) => `<div class="nvr-cell">${html}${cap != null ? `<span class="nvr-cap">${cap}</span>` : ''}</div>`;
@@ -163,8 +180,10 @@ const MAKE = {
     const a = age(), n = nOpts();
     for (let k = 0; k < 200; k++) {
       const relational = a === 6 && Math.random() < 0.35;
-      const vary = shuffle(featPool('odd')).slice(0, a === 4 ? 2 : a === 5 ? 3 : 4);
       let rule = relational ? pick(['count=lines', 'mark=shape']) : pick(featPool('odd'));
+      const vary = shuffle(featPool('odd').filter(f => !((rule === 'size' && f === 'count') || (rule === 'count' && f === 'size')))).slice(0, a === 4 ? 2 : a === 5 ? 3 : 4);
+      if (vary.includes('size') && vary.includes('count')) continue;
+      if (relational && vary.includes('size')) continue;
       const odd = rint(0, n - 1);
       let tiles = Array.from({ length: n }, () => randTile());
       // features that are not varied stay the same in all five
@@ -184,10 +203,11 @@ const MAKE = {
       }
       if (new Set(tiles.map(tkey)).size !== n) continue;
       // no other feature may single out one figure
-      if (FEATS.some(f => f !== rule && oddSplit(tiles, f) >= 0)) continue;
+      // no other feature (or broad category) may single out any figure
+      if (ALLF.some(f => f !== rule && !(DEP[f] || []).includes(rule) && oddSplit(tiles, f) >= 0)) continue;
       if (!relational && oddSplit(tiles, rule) !== odd) continue;
-      if (relational && FEATS.some(f => oddSplit(tiles, f) >= 0)) continue;
-      return { kind: 'mc', options: optsHTML(tiles), answer: odd, key: 'odd:' + rule,
+      if (relational && ALLF.some(f => oddSplit(tiles, f) >= 0)) continue;
+      return { kind: 'mc', options: optsHTML(tiles), answer: odd, key: 'odd:' + rule, data: { type: 'odd', tiles, rule, odd },
         prompt: 'Which figure is the <b>odd one out</b>?', explain };
     }
     return null;
@@ -199,24 +219,29 @@ const MAKE = {
     for (let k = 0; k < 300; k++) {
       const rules = shuffle(featPool('odd')).slice(0, a === 4 ? 1 : 2);
       const vals = {}; rules.forEach(f => vals[f] = pick(domain(f)));
-      const make = () => { const t = randTile(); rules.forEach(f => setVal(t, f, vals[f])); if (rules.includes('mpos') && t.mark === 'none') t.mark = pick(MARKS); return t; };
+      if (rules.includes('mpos') && vals.mark === 'none') continue;
+      const sizeRule = rules.includes('size'), fixedCount = rint(1, 2);
+      const make = () => { const t = randTile(); if (sizeRule) t.count = fixedCount; else t.size = 3; rules.forEach(f => setVal(t, f, vals[f])); if (rules.includes('mpos') && t.mark === 'none') t.mark = pick(MARKS); return t; };
       const ex = [make(), make(), make()];
       // everything that is not the rule must change between the three examples
-      const constEx = FEATS.filter(f => f !== 'rot' && constant(ex, f));
-      if (constEx.some(f => !rules.includes(f))) continue;
+      const constEx = ALLF.filter(f => f !== 'rot' && constant(ex, f));
+      // drawn features that are not the rule must change between the examples, so the rule can be seen
+      if (constEx.some(f => FEATS.includes(f) && !rules.includes(f) && !(sizeRule && f === 'count') && !(!sizeRule && f === 'size'))) continue;
       const right = make();
       const wrong = [];
       for (let j = 0; j < 12 && wrong.length < nOpts() - 1; j++) {
         const t = randTile(), f = pick(rules);
+        if (sizeRule) t.count = fixedCount; else t.size = 3;
         rules.forEach(g => setVal(t, g, vals[g]));
         setVal(t, f, pickOther(domain(f), vals[f]));
         wrong.push(t);
       }
       const opts = [right, ...wrong];
       if (opts.length < nOpts() || new Set(opts.concat(ex).map(tkey)).size !== opts.length + 3) continue;
-      if (wrong.some(t => constEx.every(f => fval(t, f) === fval(ex[0], f)))) continue;
+      if (wrong.some(t => constEx.every(f => dval(t, f) === dval(ex[0], f)))) continue;
+      if (!constEx.every(f => dval(right, f) === dval(ex[0], f))) continue;
       const o = shuffle(opts);
-      return { kind: 'mc', options: optsHTML(o), answer: o.indexOf(right), key: 'like:' + rules.join('+'),
+      return { kind: 'mc', options: optsHTML(o), answer: o.indexOf(right), key: 'like:' + rules.join('+'), data: { type: 'like', ex, opts: o, rules },
         prompt: `Look at the three figures in the box. Which choice is <b>most like</b> them?${row(ex.map(t => cell(tileSVG(t))), 'nvr-ex')}`,
         explain: `All three have ${rules.map(f => describe(f, vals[f], ex[0])).join(' and ')}. Only one choice has ${rules.length > 1 ? 'both' : 'that'}.` };
     }
@@ -229,6 +254,7 @@ const MAKE = {
     for (let k = 0; k < 200; k++) {
       const pool = a === 4 ? ['count', 'mpos', 'rot', 'fill', 'lines'] : ['count', 'mpos', 'rot', 'fill', 'lines', 'size'];
       const ch = shuffle(pool).slice(0, a === 4 ? 1 : a === 5 ? 2 : 3);
+      if (ch.includes('count') && ch.includes('size')) continue;
       const t0 = randTile({ size: 3 });
       if (ch.includes('rot')) { t0.shape = pick(ROT_SHAPES); t0.rot = pick([0, 90, 180, 270]); }
       if (ch.includes('count')) t0.count = 1;
@@ -248,7 +274,8 @@ const MAKE = {
         return t;
       };
       const terms = [0, 1, 2, 3, 4].map(at);
-      const gap = a === 6 && Math.random() < 0.35 ? 2 : 4;
+      // a gap in the middle is only fair when every pattern can be read from the figures either side of it
+      const gap = a === 6 && !ch.includes('size') && !(ch.includes('fill') && fillCycle.length === 3) && Math.random() < 0.35 ? 2 : 4;
       const right = terms[gap];
       const wrong = [];
       for (const f of ch) for (const d of [-1, 1, 2]) { const t = clone(right), alt = at(gap + d); if (gap + d < 0) continue; t[f] = alt[f]; if (f === 'mpos') t.mark = right.mark; wrong.push(t); }
@@ -264,7 +291,7 @@ const MAKE = {
         count: 'There is one more shape each time.', mpos: `The small corner shape moves ${Math.abs(pstep) === 2 ? 'two corners' : 'one corner'} ${pstep > 0 ? 'clockwise' : 'anticlockwise'} each time.`,
         fill: `The shading goes ${fillCycle.map(f => FILLNAME[f]).join(', ')}, then repeats.`, lines: 'There is one more line each time.', size: 'The shapes go small, medium, large, then repeat.' };
       const shown = terms.map((t, i) => i === gap ? cell(qbox()) : cell(tileSVG(t, 70)));
-      return { kind: 'mc', options: optsHTML(o), answer: o.indexOf(right), key: 'series:' + ch.join('+'),
+      return { kind: 'mc', options: optsHTML(o), answer: o.indexOf(right), key: 'series:' + ch.join('+'), data: { type: 'series', terms, gap, opts: o, ch },
         prompt: `Which figure ${gap === 4 ? 'comes next in' : 'is missing from'} the series?${row(shown, 'nvr-series')}`,
         explain: ch.map(f => say[f]).join(' ') };
     }
@@ -277,6 +304,7 @@ const MAKE = {
     for (let k = 0; k < 200; k++) {
       const pool = ['rot', 'fill', 'count', 'size', 'mark', 'lines'];
       const T = shuffle(pool).slice(0, a === 4 ? 1 : 2 + (a === 6 && Math.random() < 0.5 ? 1 : 0));
+      if (T.includes('size') && T.includes('count')) continue;
       const A = randTile({ size: 3 });
       if (T.includes('rot')) { A.shape = pick(ROT_SHAPES); A.rot = pick([0, 90, 180, 270]); }
       if (T.includes('size')) A.count = Math.min(A.count, 2);
@@ -284,12 +312,12 @@ const MAKE = {
       const say = [];
       for (const f of T) {
         if (f === 'rot') { B.rot = A.rot + d; say.push(d === 180 ? 'it turns half way round' : `it turns 90° ${d > 0 ? 'clockwise' : 'anticlockwise'}`); }
-        else { const v = pickOther(domain(f), A[f]); setVal(B, f, v); say.push(f === 'mark' ? (v === 'none' ? 'the corner shape disappears' : `it gains a small ${v} in the ${CORNER[B.mpos]} corner`) : `it changes to ${describe(f, v, B)}`); }
+        else { const v = pickOther(domain(f), A[f]); setVal(B, f, v); say.push(f === 'mark' ? (v === 'none' ? 'the small corner shape disappears' : A.mark === 'none' ? `it gains a small ${v} in the ${CORNER[B.mpos]} corner` : `the small corner shape changes to a ${v}`) : `it changes to ${describe(f, v, B)}`); }
       }
       // C keeps the starting values of everything that changes, but is a different shape
       const C = clone(A);
       C.shape = T.includes('rot') ? pickOther(ROT_SHAPES, A.shape) : pickOther(SHAPES, A.shape);
-      const extra = pickOther(['fill', 'count', 'lines'].filter(f => !T.includes(f)).concat(['shape']), 'shape');
+      const extra = pickOther(['fill', 'count', 'lines'].filter(f => !T.includes(f) && !(f === 'count' && T.includes('size'))).concat(['shape']), 'shape');
       if (extra && extra !== 'shape') C[extra] = pickOther(domain(extra), A[extra]);
       const D = clone(C); for (const f of T) { if (f === 'rot') D.rot = C.rot + d; else { D[f] = B[f]; if (f === 'mark') D.mpos = B.mpos; } }
       const wrong = [clone(C)];
@@ -301,7 +329,7 @@ const MAKE = {
       for (const t of wrong) { const kk = tkey(t); if (!seen.has(kk)) { seen.add(kk); ws.push(t); } }
       if (ws.length < nOpts() - 1 || tkey(A) === tkey(B)) continue;
       const o = shuffle([D, ...shuffle(ws).slice(0, nOpts() - 1)]);
-      return { kind: 'mc', options: optsHTML(o), answer: o.indexOf(D), key: 'analogy:' + T.join('+'),
+      return { kind: 'mc', options: optsHTML(o), answer: o.indexOf(D), key: 'analogy:' + T.join('+'), data: { type: 'analogy', A, B, C, opts: o, T },
         prompt: `The first figure changes into the second. Which choice shows the third figure changed <b>in the same way</b>?${row([cell(tileSVG(A, 70)), '<span class="nvr-arrow">→</span>', cell(tileSVG(B, 70)), '<span class="nvr-gap"></span>', cell(tileSVG(C, 70)), '<span class="nvr-arrow">→</span>', cell(qbox())], 'nvr-analogy')}`,
         explain: `From the first figure to the second, ${say.join(' and ')}. Do the same to the third figure.` };
     }
@@ -341,7 +369,7 @@ const MAKE = {
       if (new Set(cells.flat().map(tkey)).size < cells.flat().length - (n === 3 ? 0 : 0)) continue;
       const o = shuffle([right, ...ws.slice(0, nOpts() - 1)]);
       const grid = `<div class="nvr-grid g${n}">${cells.flat().map((t, i) => i === n * n - 1 ? cell(qbox()) : cell(tileSVG(t, n === 3 ? 58 : 70))).join('')}</div>`;
-      return { kind: 'mc', options: optsHTML(o), answer: o.indexOf(right), key: 'matrix:' + n,
+      return { kind: 'mc', options: optsHTML(o), answer: o.indexOf(right), key: 'matrix:' + n, data: { type: 'matrix', cells, opts: o },
         prompt: `Which figure completes the grid?${grid}`, explain };
     }
     return null;
@@ -369,12 +397,12 @@ const MAKE = {
       let bad = false;
       for (let j = 0; j < P && !bad; j++) {
         const lettersEx = combos.map(c => letters[j][c[j]]);
-        for (const f of FEATS) {
-          if (f === attrs[j]) continue;
-          const fv = ex.map(t => fval(t, f));
+        for (const f of ALLF) {
+          if (f === attrs[j] || (DEP[f] || []).includes(attrs[j])) continue;
+          const fv = ex.map(t => dval(t, f));
           const same = fv.every((v, i) => fv.every((w, m) => (v === w) === (lettersEx[i] === lettersEx[m])));
           if (!same) continue;
-          const hit = fv.indexOf(fval(test, f));
+          const hit = fv.indexOf(dval(test, f));
           if (hit < 0 || lettersEx[hit] !== letters[j][tc[j]]) bad = true;
         }
       }
@@ -388,7 +416,7 @@ const MAKE = {
       const o = shuffle([right, ...ws.slice(0, nOpts() - 1)]);
       const FN = { shape: 'the shape', fill: 'the shading', count: 'the number of shapes', mark: 'the corner shape', lines: 'the number of lines' };
       const VN = (f, v) => f === 'shape' ? NAME[v] : f === 'fill' ? FILLNAME[v] : f === 'mark' ? v : `${v}`;
-      return { kind: 'mc', options: o.map(c => `<b class="nvr-code">${c}</b>`), answer: o.indexOf(right), key: 'code:' + attrs.join('+'),
+      return { kind: 'mc', options: o.map(c => `<b class="nvr-code">${c}</b>`), answer: o.indexOf(right), key: 'code:' + attrs.join('+'), data: { type: 'code', ex, codes: combos.map(codeOf), test, opts: o, attrs },
         prompt: `Each letter stands for something about the figure. Which code goes with the last figure?${row(ex.map((t, i) => cell(tileSVG(t, 66), codeOf(combos[i]))).concat([cell(tileSVG(test, 66), '?')]), 'nvr-codes')}`,
         explain: attrs.map((f, j) => `Letter ${j + 1} is ${FN[f]}: ${vals[j].map((v, i) => `${letters[j][i]} = ${VN(f, v)}`).join(', ')}.`).join(' ') + ` So the code is <b>${right}</b>.` };
     }
@@ -406,7 +434,7 @@ const MAKE = {
       for (const c of cand) { const kk = fkey(c); if (!seen.has(kk)) { seen.add(kk); ws.push(c); } }
       if (ws.length < nOpts() - 1) continue;
       const o = shuffle([right, ...ws.slice(0, nOpts() - 1)]);
-      return { kind: 'mc', options: o.map(x => figSVG(x)), answer: o.indexOf(right), key: 'reflect:' + (horiz ? 'h' : 'v'),
+      return { kind: 'mc', options: o.map(x => figSVG(x)), answer: o.indexOf(right), key: 'reflect:' + (horiz ? 'h' : 'v'), data: { type: 'reflect', fig: f, opts: o, horiz },
         prompt: `Which choice shows the figure <b>reflected in the mirror line</b>?${row([cell(figSVG(f, 90, horiz ? 'h' : 'v'))], 'nvr-ex')}`,
         explain: horiz ? 'In a mirror line along the bottom, the top and bottom swap over. Left and right stay where they are.' : 'In a mirror line down the side, left and right swap over. The top and bottom stay where they are.' };
     }
@@ -421,7 +449,7 @@ const MAKE = {
       for (const t of shuffle([0, 1, 2, 3])) { const c = rot(mirV(f), t), kk = fkey(c); if (!seen.has(kk)) { seen.add(kk); ws.push(c); } }
       if (ws.length < nOpts() - 1) continue;
       const o = shuffle([right, ...ws.slice(0, nOpts() - 1)]);
-      return { kind: 'mc', options: o.map(x => figSVG(x)), answer: o.indexOf(right), key: 'rotate',
+      return { kind: 'mc', options: o.map(x => figSVG(x)), answer: o.indexOf(right), key: 'rotate', data: { type: 'rotate', fig: f, opts: o, turn },
         prompt: `Which choice is the figure <b>turned round</b>? It must not be flipped over.${row([cell(figSVG(f, 90))], 'nvr-ex')}`,
         explain: `The answer is the figure turned ${turn === 2 ? 'half way round' : `a quarter turn ${turn === 1 ? 'clockwise' : 'anticlockwise'}`}. The others are mirror images, so they cannot be made just by turning.` };
     }
@@ -439,9 +467,9 @@ const MAKE = {
       for (const v of shuffle(variants)) { const kk = gkey(v); if (!seen.has(kk)) { seen.add(kk); vs.push(v); } }
       if (vs.length < nOpts() - 1) continue;
       const mk = shape => hiddenSVG(shape, u, a);
-      const right = mk(tgt);
-      const o = shuffle([right, ...vs.slice(0, nOpts() - 1).map(mk)]);
-      return { kind: 'mc', options: o, answer: o.indexOf(right), key: 'hidden',
+      const shapes = shuffle([tgt, ...vs.slice(0, nOpts() - 1)]);
+      const o = shapes.map(mk);
+      return { kind: 'mc', options: o, answer: shapes.indexOf(tgt), key: 'hidden', data: { type: 'hidden', tgt, shapes },
         prompt: `Which figure has this shape <b>hidden</b> in it? It must be the same size and the same way round.${row([cell(gridShapeSVG(tgt, u))], 'nvr-ex')}`,
         explain: 'Look for the corners of the shape first. The other figures hide the shape flipped, turned or stretched.' };
     }
@@ -463,7 +491,7 @@ const MAKE = {
       for (const w of wrongSets) { const kk = setKey(w); if (w.length && !seen.has(kk)) { seen.add(kk); ws.push(w); } }
       if (ws.length < nOpts() - 1) continue;
       const o = shuffle([unf, ...ws.slice(0, nOpts() - 1)]);
-      return { kind: 'mc', options: o.map(s => paperSVG(s)), answer: o.findIndex(s => setKey(s) === setKey(unf)), key: 'fold:' + kind,
+      return { kind: 'mc', options: o.map(s => paperSVG(s)), answer: o.findIndex(s => setKey(s) === setKey(unf)), key: 'fold:' + kind, data: { type: 'fold', kind, holes, opts: o },
         prompt: `A square of paper is folded${kind.length > 1 ? ' twice' : ''}, then holes are punched through it. Which choice shows the paper <b>unfolded</b>?${row([cell(foldSVG(kind, holes), '')], 'nvr-ex')}`,
         explain: kind.length > 1 ? 'Unfold one fold at a time. Each hole is reflected in the first fold line, then everything is reflected in the second fold line, giving four of each hole.' : 'When the paper opens, every hole appears again, reflected in the fold line.' };
     }
@@ -481,9 +509,12 @@ const MAKE = {
       if (opp < 0) continue;
       const others = [0, 1, 2, 3, 4, 5].filter(i => i !== pickF && i !== opp);
       const choices = shuffle([opp, ...shuffle(others).slice(0, nOpts() - 1)]);
-      return { kind: 'mc', options: choices.map(i => symSVG(syms[i])), answer: choices.indexOf(opp), key: 'cube',
+      const touch = [0, 1, 2, 3, 4, 5].filter(i => i !== pickF && i !== opp).map(i => NAME[syms[i]] + (syms[i] === 'cross' ? '' : ''));
+      const line = faces[pickF].r === faces[opp].r ? Math.abs(faces[pickF].c - faces[opp].c) === 2 : faces[pickF].c === faces[opp].c && Math.abs(faces[pickF].r - faces[opp].r) === 2;
+      return { kind: 'mc', options: choices.map(i => symSVG(syms[i])), answer: choices.indexOf(opp), key: 'cube', data: { type: 'cube', net, faces, pick: pickF, choices, syms },
+        explainX: `When the net folds, the shaded ${NAME[syms[pickF]]} touches the ${touch.slice(0, -1).join(', ')} and ${touch[touch.length - 1]}. The only face it never touches is the <b>${NAME[syms[opp]]}</b>, so that is opposite.${line ? ' They are also two squares apart in a straight line, which always means opposite.' : ''}`,
         prompt: `This net folds to make a cube. Which face will be <b>opposite</b> the shaded face?${row([cell(netSVG(net, faces, syms, pickF))], 'nvr-ex')}`,
-        explain: 'Opposite faces never touch. In a straight line of three squares on a net, the first and third squares end up opposite each other.' };
+        get explain() { return this.explainX; } };
     }
     return null;
   },
