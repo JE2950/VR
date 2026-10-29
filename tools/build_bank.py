@@ -110,7 +110,10 @@ for line in open(os.path.join(HERE, 'hidden_sentences.txt')):
         pool = [x for x in by_len[4] if x not in flat and x not in cands and x != w and level(x) <= max(5, level(w)) and is_lemma(x)]
         # distractors that share a letter with the answer look more tempting
         pool.sort(key=lambda x: -len(set(x) & set(w)) + random.random() * 2)
-        hidden.append({'s': s, 'a': w, 'd': pool[:6], 'lv': level(w)})
+        # every pair of neighbouring words that hides any real word, so wrong pairs can avoid them
+        ws_ = re.findall(r"[a-z]+", s.lower())
+        busy = [i for i, (a_, b_) in enumerate(zip(ws_, ws_[1:])) if any(real(a_[-k:] + b_[:4 - k]) for k in (1, 2, 3) if len(a_) >= k and len(b_) >= 4 - k)]
+        hidden.append({'s': s, 'a': w, 'd': pool[:6], 'x': busy, 'lv': level(w)})
 bank['hidden'] = hidden
 print('hidden', len(hidden))
 

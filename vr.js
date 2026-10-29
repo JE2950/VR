@@ -481,6 +481,19 @@ plural|4|{b} is the plural of {a}.|mouse:mice,child:children,foot:feet,tooth:tee
 plural|6|{b} is the plural of {a}.|ox:oxen,cactus:cacti,fungus:fungi,crisis:crises,louse:lice,die:dice,medium:media,stimulus:stimuli`;
 const REL = REL_RAW.split('\n').map(l => { const [name, lv, ex, p] = l.split('|'); return { name, lv: +lv, ex, pairs: p.split(',').map(x => x.split(':')) }; });
 
+/* sentences for the GL layout of missing three letters: the word appears in capitals with the letters taken out */
+const M3SENT = { weather: 'The {} was sunny all week.', husband: 'Her {} cooked dinner.', thousand: 'A {} people came to the match.',
+  research: 'We did some {} on volcanoes.', tomorrow: 'We are going swimming {}.', another: 'Can I have {} biscuit?',
+  argument: 'The twins had an {} about the remote.', actually: 'I thought it was easy, but it was {} hard.', attended: 'Everyone {} the school play.',
+  improved: 'His handwriting has {} this term.', elements: 'Oxygen and gold are both chemical {}.', knowing: 'She smiled, {} the answer.',
+  unknown: 'The letter came from an {} sender.', focused: 'The goalkeeper stayed {} on the ball.', creature: 'A strange {} crawled out of the pond.',
+  accident: 'I spilt the paint by {}.', shouting: 'Stop {} in the corridor!', jumping: 'The horse was {} over the fences.',
+  climbing: 'We went {} in the mountains.', opponent: 'He shook hands with his {} after the game.', forecast: 'The weather {} says it will rain.',
+  offended: 'She was {} by the rude comment.', occupied: 'The bathroom was {}, so I waited.', sitting: 'The cat was {} on the wall.',
+  grandma: 'My {} knits jumpers.', teenager: 'My brother is a {} now.', punished: 'He was {} for breaking the window.',
+  delicate: 'Be careful with that {} vase.', earliest: 'What is your {} memory?', evidence: 'The detective found new {}.',
+  counting: 'She was {} the sheep.', testing: 'The teacher is {} our spelling.' };
+
 const NAMES = ['Ali', 'Ben', 'Cara', 'Dev', 'Ella', 'Finn', 'Grace', 'Harry', 'Isla', 'Jack', 'Kemi', 'Leo', 'Maya', 'Noah', 'Omar', 'Priya', 'Ruby', 'Sam', 'Tom', 'Zara'];
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -624,6 +637,22 @@ const MAKE = {
 
   /* ── FINDING WORDS ── */
   hidden() {
+    if (Math.random() < 0.45) {                         // GL layout: choose the pair of words that hides the word
+      const pool = BANK.hidden.filter(x => x.x && x.s.split(' ').length - 1 - x.x.length >= nOpts() - 1);
+      if (pool.length) {
+        const h = byLevel(pool, x => x.s + 'p'), ws = h.s.split(' '), clean = w => w.replace(/[^A-Za-z’']/g, '');
+        const pairs = ws.slice(0, -1).map((w, i) => clean(w) + ' ' + clean(ws[i + 1]));
+        let at = -1;
+        for (let i = 0; i < pairs.length && at < 0; i++) { const a = clean(ws[i]).toLowerCase(), b = clean(ws[i + 1]).toLowerCase(); for (let k = 1; k <= 3; k++) if (a.length >= k && b.length >= 4 - k && a.slice(-k) + b.slice(0, 4 - k) === h.a) { at = i; break; } }
+        if (at >= 0) {
+          const wrong = pairs.filter((p, i) => i !== at && !h.x.includes(i));
+          const q = mc(pairs[at], shuffle(wrong));
+          if (q) return Object.assign(q, { key: 'hidden:' + h.a,
+            prompt: `A four-letter word is hidden across the end of one word and the start of the next. Which <b>pair of words</b> hides it?<span class="sentence">${esc(h.s)}</span>`,
+            explain: `<b>${esc(pairs[at])}</b> hides <b>${esc(h.a)}</b>.` });
+        }
+      }
+    }
     const h = byLevel(BANK.hidden, x => x.s);
     const q = mc(h.a, shuffle(h.d));
     if (!q) return null;
@@ -673,7 +702,7 @@ const MAKE = {
   },
   morph() {
     const m = byLevel(BANK.morph, x => x.w1 + x.w3);
-    const q = mc(m.a, shuffle(m.d));
+    const q = mc(m.a, shuffle(m.d.filter(d => /[aeiouy]/.test(d))));
     if (!q) return null;
     q.options = q.options.map(UP);
     return Object.assign(q, { key: 'morph:' + m.a,
@@ -692,8 +721,19 @@ const MAKE = {
       explain: `Take <b>${UP(t.a)}</b> out of ${UP(t.w1)} to make <b>${UP(t.r[0])}</b>. Put it into ${UP(t.w2)} to make <b>${UP(t.r[1])}</b>.` });
   },
   missing3() {
+    const withS = BANK.missing3.filter(x => M3SENT[x.w] && x.w.slice(x.i, x.i + 3) === x.a);
+    if (withS.length && Math.random() < 0.5) {          // GL layout: the word sits in a sentence with three letters missing
+      const m = byLevel(withS, x => x.w), W = UP(m.w), cut = W.slice(0, m.i) + W.slice(m.i + 3);
+      const q = mc(m.a, shuffle(m.d.filter(d => /[aeiouy]/.test(d))));
+      if (q) {
+        q.options = q.options.map(UP);
+        return Object.assign(q, { key: 'missing3:' + m.w,
+          prompt: `The word in capitals has had three letters next to each other taken out. Those three letters spell a word. Which word completes the sentence?<span class="sentence">${esc(M3SENT[m.w]).replace('{}', '<b>' + cut + '</b>')}</span>`,
+          explain: `${cut} needs <b>${UP(m.a)}</b> to make <b>${W}</b>: ${esc(M3SENT[m.w].replace('{}', m.w))}` });
+      }
+    }
     const m = byLevel(BANK.missing3, x => x.w);
-    const q = mc(m.a, shuffle(m.d));
+    const q = mc(m.a, shuffle(m.d.filter(d => /[aeiouy]/.test(d))));
     if (!q) return null;
     q.options = q.options.map(UP);
     const W = UP(m.w);

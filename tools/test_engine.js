@@ -3,7 +3,7 @@ const fs = require('fs'), vm = require('vm'), path = require('path');
 const root = path.join(__dirname, '..');
 const ctx = { localStorage: { getItem: () => null, setItem: () => {} }, console, Math, JSON, Set, Map, Number, String, Array, Object };
 vm.createContext(ctx);
-vm.runInContext(fs.readFileSync(path.join(root, 'bank.js'), 'utf8') + '\n' + fs.readFileSync(path.join(root, 'atom.js'), 'utf8') + '\n' + fs.readFileSync(path.join(root, 'vr.js'), 'utf8') +
+vm.runInContext(fs.readFileSync(path.join(root, 'bank.js'), 'utf8') + '\n' + fs.readFileSync(path.join(root, 'atom.js'), 'utf8') + '\n' + fs.readFileSync(path.join(root, 'gl_style.js'), 'utf8') + '\n' + fs.readFileSync(path.join(root, 'vr.js'), 'utf8') +
   '\nthis.MAKE=MAKE;this.SAVE=SAVE;this.TOPICS=TOPICS;this.makeQuestion=makeQuestion;this.nOpts=nOpts;this.answerText=answerText;this.ATOM=ATOM;this.fromAtom=fromAtom;', ctx);
 const N = +process.argv[2] || 400, show = process.argv[3];
 let bad = 0;
