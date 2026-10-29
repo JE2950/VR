@@ -1,0 +1,15 @@
+<!doctype html><meta charset="utf-8"><title>NVR preview</title>
+<style>body{font-family:sans-serif;background:#eee;margin:10px} .q{background:#fff;margin:8px 0;padding:8px;border:1px solid #999}
+.nvr-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0}.nvr-cell{display:grid;justify-items:center}.nvr-q{width:66px;height:66px;display:grid;place-items:center;border:2px dashed #999;font-size:28px}
+.nvr-grid{display:grid;gap:4px;margin:6px 0}.nvr-grid.g2{grid-template-columns:repeat(2,max-content)}.nvr-grid.g3{grid-template-columns:repeat(3,max-content)}
+.opts{display:flex;gap:6px;flex-wrap:wrap}.o{border:2px solid #ccc;padding:2px}.o.ok{border-color:#2a2;background:#cfc}.ex{font-size:12px;color:#444}</style>
+<div id="out"></div>
+<script src="../nvr.js"></script>
+<script>
+const p = new URLSearchParams(location.search); SAVE.age = +(p.get('age') || 5);
+const tops = (p.get('t') || Object.keys(TOPICS).join(',')).split(','), n = +(p.get('n') || 2);
+let h = '';
+for (const t of tops) for (let i = 0; i < n; i++) { const q = MAKE[t]();
+  h += `<div class="q"><b>Y${SAVE.age} ${t}</b> ${q.prompt}<div class="opts">${q.options.map((o, j) => `<div class="o ${j === q.answer ? 'ok' : ''}">${LET[j]} ${o}</div>`).join('')}</div><div class="ex">${q.explain}</div></div>`; }
+document.getElementById('out').innerHTML = h;
+</script>

@@ -39,3 +39,23 @@ Every question shows the method on request (**How?** or the H key) and explains 
 - `tools/test_engine.js`: `node tools/test_engine.js 400` makes 400 questions per topic at each age and checks every one. `node tools/test_engine.js 3 all` prints examples to read.
 
 To change vocabulary, edit the lists at the top of `vr.js` (`SYN_RAW`, `ANT_RAW`, `CAT_RAW`, `HOMO_RAW`, `REL_RAW`). Each line carries a level (4, 5 or 6).
+
+# The Melting Studio (non-verbal reasoning)
+
+A second game in the same style, for 11+ / ISEB non-verbal reasoning. The Smudge, a runaway blot of ink, has scrambled the patterns in a surreal desert studio. Tick, a pocket watch on two legs, helps you through.
+
+- **Question mode** (`nvr.html`): Commission (six rooms and a duel with the Smudge), Quick Sketch (against the clock), the 3D Studio, and the Sketchbook (every puzzle type with its method and a Practise button).
+- **3D Studio** (`nvr3d.html`): the melting clock room, the floating easels, the mirror gallery, the paper workshop and the code cellar, then the Smudge's canvas and a golden frame to step through.
+
+## Topics
+- **Similarities**: odd one out, most like
+- **Series and grids**: series, analogies, matrices
+- **Codes**: letter codes for features
+- **Spatial**: reflections, rotations, hidden shapes, fold and punch, cube nets
+
+Every figure is drawn by `nvr.js` as it is needed, so the puzzles never run out. Each one is built from a rule and then checked: in odd one out, no other feature singles out a different figure; in codes, no other feature could explain the letters; in rotations, the wrong answers are mirror images that no turn can make; in cube nets, the cube is rolled across the net to find opposite faces.
+
+The age setting works the same way as Station Zero's: Year 4 changes one thing at a time with 4 choices; Year 5 changes two things and adds 3 × 3 grids and diagonal folds; Year 6+ changes up to three things, adds rules that link two features (number of shapes = number of lines) and double folds.
+
+- `tools/test_nvr.js`: `node tools/test_nvr.js 400` makes 400 puzzles per topic at each age and checks them.
+- `tools/preview_nvr.html?age=5&t=odd,fold&n=3`: shows puzzles with the answers marked, for checking by eye.
